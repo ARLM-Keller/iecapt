@@ -86,7 +86,7 @@ public:
 
 public:
 
-    void SaveSnapshot(IDispatch* pdisp, VARIANT* purl);
+    BOOL SaveSnapshot(IDispatch* pdisp, VARIANT* purl);
 
 public:
     LPCSTR m_URI;
@@ -138,10 +138,9 @@ STDMETHODIMP CEventSink::Invoke(DISPID dispid, REFIID riid, LCID lcid,
     if (pdispparams->rgvarg[1].vt != VT_DISPATCH)
         return S_OK;
 
-    m_pMain->SaveSnapshot(pdispparams->rgvarg[1].pdispVal,
-                          pdispparams->rgvarg[0].pvarVal);
-
-    m_pMain->PostMessage(WM_CLOSE);
+    if (m_pMain->SaveSnapshot(pdispparams->rgvarg[1].pdispVal,
+                              pdispparams->rgvarg[0].pvarVal))
+        m_pMain->PostMessage(WM_CLOSE);
 
     return S_OK;
 }
@@ -216,15 +215,16 @@ LRESULT CMain::OnDestroy(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled
 //////////////////////////////////////////////////////////////////
 // Implementation of CMain::SaveSnapshot
 //////////////////////////////////////////////////////////////////
-void CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
+BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
 {
         IHTMLDocument3* pDocument3 = NULL;
-        IHTMLDocument2* pDocument = NULL;
-        IHTMLElement2* pElement2 = NULL;
-        IHTMLElement* pElement = NULL;
-        IViewObject2* pViewObject = NULL;
-        IDispatch* pDispatch = NULL;
+        IHTMLDocument2* pDocument  = NULL;
+        IHTMLElement2* pElement2   = NULL;
+        IHTMLElement* pElement     = NULL;
+        IViewObject2* pViewObject  = NULL;
+        IDispatch* pDispatch       = NULL;
         IDispatch* pWebBrowserDisp = NULL;
+
         HRESULT hr;
         long bodyHeight;
         long bodyWidth;
@@ -236,68 +236,68 @@ void CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         hr = m_pWebBrowser->get_Document(&pDispatch);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = m_pWebBrowserUnk->QueryInterface(IID_IDispatch, (void**)&pWebBrowserDisp);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         if (pWebBrowserDisp != pdisp)
         {
             pWebBrowserDisp->Release();
-            return;
+            return false;
         }
 
         hr = pDispatch->QueryInterface(IID_IHTMLDocument2, (void**)&pDocument);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pDocument->get_body(&pElement);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pElement->QueryInterface(IID_IHTMLElement2, (void**)&pElement2);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pElement2->get_scrollHeight(&bodyHeight);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pElement2->get_scrollWidth(&bodyWidth);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pDispatch->QueryInterface(IID_IHTMLDocument3, (void**)&pDocument3);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pDocument3->get_documentElement(&pElement);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pElement->QueryInterface(IID_IHTMLElement2, (void**)&pElement2);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pElement2->get_scrollHeight(&rootHeight);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         hr = pElement2->get_scrollWidth(&rootWidth);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         width = bodyWidth;
         height = rootHeight > bodyHeight ? rootHeight : bodyHeight;
@@ -308,7 +308,7 @@ void CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         hr = m_pWebBrowser->QueryInterface(IID_IViewObject2, (void**)&pViewObject);
 
         if (FAILED(hr))
-            return;
+            return true;
 
         HDC hdcMain = GetDC();
         HDC hdcMem = CreateCompatibleDC(hdcMain);
@@ -330,6 +330,8 @@ void CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
 
         pViewObject->Release();
         pWebBrowserDisp->Release();
+
+        return true;
 }
 
 static const GUID myGUID = { 0x445c10c2, 0xa6d4, 0x40a9, { 0x9c, 0x3f, 0x4e, 0x90, 0x42, 0x1d, 0x7e, 0x83 } };
