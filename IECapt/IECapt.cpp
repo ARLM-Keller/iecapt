@@ -310,9 +310,45 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         if (FAILED(hr))
             return true;
 
+		BITMAPINFOHEADER bih;
+		BITMAPINFO bi;
+		RGBQUAD rgbquad;
+
+		ZeroMemory(&bih, sizeof(BITMAPINFOHEADER));
+		ZeroMemory(&rgbquad, sizeof(RGBQUAD));
+
+		bih.biSize          = sizeof(BITMAPINFOHEADER);
+		bih.biWidth         = width;
+		bih.biHeight        = height;
+		bih.biPlanes        = 1;
+		bih.biBitCount      = 24;
+		bih.biClrUsed       = 0;
+		bih.biSizeImage     = 0;
+		bih.biCompression   = BI_RGB;
+		bih.biXPelsPerMeter = 0;
+		bih.biYPelsPerMeter = 0;
+
+		bi.bmiHeader = bih;
+		bi.bmiColors[0] = rgbquad;
+
         HDC hdcMain = GetDC();
+
+		if (!hdcMain)
+			return true;
+
         HDC hdcMem = CreateCompatibleDC(hdcMain);
-        HBITMAP hBitmap = CreateCompatibleBitmap(hdcMain, width, height);
+
+		if (!hdcMem)
+			return true;
+
+		char* bitmapData = NULL;
+		HBITMAP hBitmap = CreateDIBSection(hdcMain, &bi, DIB_RGB_COLORS, (void**)&bitmapData, NULL, 0);
+
+		if (!hBitmap) {
+			// TODO: cleanup
+			return true;
+		}
+
         SelectObject(hdcMem, hBitmap);
 
         RECTL rcBounds = { 0, 0, width, height };
@@ -327,6 +363,9 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
             ::BitBlt(imageDC, 0, 0, width, height, hdcMem, 0, 0, SRCCOPY);
             image.Save(m_fileName);
         }
+
+		DeleteObject(hBitmap);
+		DeleteDC(hdcMem);
 
         pViewObject->Release();
         pWebBrowserDisp->Release();
