@@ -310,44 +310,44 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         if (FAILED(hr))
             return true;
 
-		BITMAPINFOHEADER bih;
-		BITMAPINFO bi;
-		RGBQUAD rgbquad;
+        BITMAPINFOHEADER bih;
+        BITMAPINFO bi;
+        RGBQUAD rgbquad;
 
-		ZeroMemory(&bih, sizeof(BITMAPINFOHEADER));
-		ZeroMemory(&rgbquad, sizeof(RGBQUAD));
+        ZeroMemory(&bih, sizeof(BITMAPINFOHEADER));
+        ZeroMemory(&rgbquad, sizeof(RGBQUAD));
 
-		bih.biSize          = sizeof(BITMAPINFOHEADER);
-		bih.biWidth         = width;
-		bih.biHeight        = height;
-		bih.biPlanes        = 1;
-		bih.biBitCount      = 24;
-		bih.biClrUsed       = 0;
-		bih.biSizeImage     = 0;
-		bih.biCompression   = BI_RGB;
-		bih.biXPelsPerMeter = 0;
-		bih.biYPelsPerMeter = 0;
+        bih.biSize          = sizeof(BITMAPINFOHEADER);
+        bih.biWidth         = width;
+        bih.biHeight        = height;
+        bih.biPlanes        = 1;
+        bih.biBitCount      = 24;
+        bih.biClrUsed       = 0;
+        bih.biSizeImage     = 0;
+        bih.biCompression   = BI_RGB;
+        bih.biXPelsPerMeter = 0;
+        bih.biYPelsPerMeter = 0;
 
-		bi.bmiHeader = bih;
-		bi.bmiColors[0] = rgbquad;
+        bi.bmiHeader = bih;
+        bi.bmiColors[0] = rgbquad;
 
         HDC hdcMain = GetDC();
 
-		if (!hdcMain)
-			return true;
+        if (!hdcMain)
+            return true;
 
         HDC hdcMem = CreateCompatibleDC(hdcMain);
 
-		if (!hdcMem)
-			return true;
+        if (!hdcMem)
+            return true;
 
-		char* bitmapData = NULL;
-		HBITMAP hBitmap = CreateDIBSection(hdcMain, &bi, DIB_RGB_COLORS, (void**)&bitmapData, NULL, 0);
+        char* bitmapData = NULL;
+        HBITMAP hBitmap = CreateDIBSection(hdcMain, &bi, DIB_RGB_COLORS, (void**)&bitmapData, NULL, 0);
 
-		if (!hBitmap) {
-			// TODO: cleanup
-			return true;
-		}
+        if (!hBitmap) {
+            // TODO: cleanup
+            return true;
+        }
 
         SelectObject(hdcMem, hBitmap);
 
@@ -364,8 +364,8 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
             image.Save(m_fileName);
         }
 
-		DeleteObject(hBitmap);
-		DeleteDC(hdcMem);
+        DeleteObject(hBitmap);
+        DeleteDC(hdcMem);
 
         pViewObject->Release();
         pWebBrowserDisp->Release();
