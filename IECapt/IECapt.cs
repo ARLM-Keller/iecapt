@@ -24,7 +24,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-using AxSHDocVw; // Add "Microsoft Internet Controls" (COM)
+using AxSHDocVw; // Use `aximp %SystemRoot%\system32\shdocvw.dll`
 using mshtml;    // Add "Microsoft.mshtml" (.NET)
 
 // Various COM interface and struct declarations. Many of them are not
@@ -86,21 +86,25 @@ public interface IDataObject {
 
 [ComImport, InterfaceType((short) 1), Guid("BD3F23C0-D43E-11CF-893B-00AA00BDCE1A"), ComConversionLoss]
 public interface IDocHostUIHandler {
-  void ShowContextMenu([In] uint dwID, [In] ref tagPOINT ppt, [In, MarshalAs(UnmanagedType.IUnknown)] object pcmdtReserved, [In, MarshalAs(UnmanagedType.IDispatch)] object pdispReserved);
+  [PreserveSig]
+  uint ShowContextMenu([In] uint dwID, [In] ref tagPOINT ppt, [In, MarshalAs(UnmanagedType.IUnknown)] object pcmdtReserved, [In, MarshalAs(UnmanagedType.IDispatch)] object pdispReserved);
   void GetHostInfo([In, Out] ref _DOCHOSTUIINFO pInfo);
-  void ShowUI([In] uint dwID, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceActiveObject pActiveObject, [In, MarshalAs(UnmanagedType.Interface)] IOleCommandTarget pCommandTarget, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceFrame pFrame, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceUIWindow pDoc);
+  uint ShowUI([In] uint dwID, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceActiveObject pActiveObject, [In, MarshalAs(UnmanagedType.Interface)] IOleCommandTarget pCommandTarget, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceFrame pFrame, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceUIWindow pDoc);
   void HideUI();
   void UpdateUI();
   void EnableModeless([In] int fEnable);
   void OnDocWindowActivate([In] int fActivate);
   void OnFrameWindowActivate([In] int fActivate);
   void ResizeBorder([In] ref tagRECT prcBorder, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceUIWindow pUIWindow, [In] int fRameWindow);
+  [PreserveSig]
   void TranslateAccelerator([In] ref tagMSG lpmsg, [In] ref Guid pguidCmdGroup, [In] uint nCmdID);
   void GetOptionKeyPath([MarshalAs(UnmanagedType.LPWStr)] out string pchKey, [In] uint dw);
   void GetDropTarget([In, MarshalAs(UnmanagedType.Interface)] IDropTarget pDropTarget, [MarshalAs(UnmanagedType.Interface)] out IDropTarget ppDropTarget);
+  [PreserveSig]
   void GetExternal([MarshalAs(UnmanagedType.IDispatch)] out object ppDispatch);
-  void TranslateUrl([In] uint dwTranslate, [In] ref ushort pchURLIn, [Out] IntPtr ppchURLOut);
-  void FilterDataObject([In, MarshalAs(UnmanagedType.Interface)] IDataObject pDO, [MarshalAs(UnmanagedType.Interface)] out IDataObject ppDORet);
+  [PreserveSig]
+  uint TranslateUrl([In] uint dwTranslate, [In, MarshalAs(UnmanagedType.BStr)] string pchURLIn, [In, Out, MarshalAs(UnmanagedType.BStr)] ref string ppchURLOut);
+  uint FilterDataObject([In, MarshalAs(UnmanagedType.Interface)] IDataObject pDO, [MarshalAs(UnmanagedType.Interface)] out IDataObject ppDORet);
 }
 
 
@@ -743,12 +747,8 @@ public struct __MIDL_IWinTypes_0009 {
 
 class IECaptUIHandler : IDocHostUIHandler {
 
-  // This implementation, along with the interface definition, is
-  // perhaps not quite right, as we don't generate appropriate
-  // return values from most of the members. It's not clear though
-  // how it should look like instead.
-
-  public void ShowContextMenu(uint dwID, ref tagPOINT ppt, object pcmdtReserved, object pdispReserved) {
+  public uint ShowContextMenu(uint dwID, ref tagPOINT ppt, object pcmdtReserved, object pdispReserved) {
+    return 1;
   }
 
   public void GetHostInfo(ref _DOCHOSTUIINFO pInfo) {
@@ -759,69 +759,154 @@ class IECaptUIHandler : IDocHostUIHandler {
     pInfo.dwFlags = (uint)(0
       | tagDOCHOSTUIFLAG.DOCHOSTUIFLAG_SCROLL_NO
       | tagDOCHOSTUIFLAG.DOCHOSTUIFLAG_NO3DBORDER
-      | tagDOCHOSTUIFLAG.DOCHOSTUIFLAG_NO3DOUTERBORDER);
+      | tagDOCHOSTUIFLAG.DOCHOSTUIFLAG_NO3DOUTERBORDER
+    );
   }
 
-  public void ShowUI(uint dwID, IOleInPlaceActiveObject pActiveObject, IOleCommandTarget pCommandTarget, IOleInPlaceFrame pFrame, IOleInPlaceUIWindow pDoc) {
+  public uint ShowUI(uint dwID, IOleInPlaceActiveObject pActiveObject, IOleCommandTarget pCommandTarget, IOleInPlaceFrame pFrame, IOleInPlaceUIWindow pDoc) {
+    return 1;
   }
 
   public void HideUI() {
+    throw new NotImplementedException();
   }
 
   public void UpdateUI() {
+    throw new NotImplementedException();
   }
 
   public void EnableModeless(int fEnable) {
+    throw new NotImplementedException();
   }
 
   public void OnDocWindowActivate(int fActivate) {
+    throw new NotImplementedException();
   }
 
   public void OnFrameWindowActivate(int fActivate) {
+    throw new NotImplementedException();
   }
 
   public void ResizeBorder(ref tagRECT prcBorder, IOleInPlaceUIWindow pUIWindow, int fRameWindow) {
+    throw new NotImplementedException();
   }
 
   public void TranslateAccelerator(ref tagMSG lpmsg, ref Guid pguidCmdGroup, uint nCmdID) {
+    throw new NotImplementedException();
   }
 
   public void GetOptionKeyPath(out string pchKey, uint dw) {
     pchKey = null;
+    throw new NotImplementedException();
   }
 
   public void GetDropTarget(IDropTarget pDropTarget, out IDropTarget ppDropTarget) {
     ppDropTarget = null;
+    throw new NotImplementedException();
   }
 
   public void GetExternal(out object ppDispatch) {
     ppDispatch = null;
+    throw new NotImplementedException();
   }
 
-  public void TranslateUrl(uint dwTranslate, ref ushort pchURLIn, IntPtr ppchURLOut) {
+  public uint TranslateUrl(uint dwTranslate, string pchURLIn, ref string ppchURLOut) {
+    return 1;
   }
 
-  public void FilterDataObject(IDataObject pDO, out IDataObject ppDORet) {
+  public uint FilterDataObject(IDataObject pDO, out IDataObject ppDORet) {
     ppDORet = null;
+    return 1;
   }
 }
 
 class IECaptForm : Form {
-  public string mURL;
-  public string mFile;
-  public int    mMinWidth;
+  private string mURL;
+  private string mFile;
+  private int mMinWidth;
+  private AxWebBrowser mWb;
+  public Timer mTimer = new Timer();
 
-  public IECaptForm(string url, string file, int minWidth) {
+  public IECaptForm(string url, string file, int minWidth, int delay, AxWebBrowser wb) {
     mURL = url;
     mFile = file;
     mMinWidth = minWidth;
+    mTimer.Interval = delay;
+    mTimer.Tick += new EventHandler(mTimer_Tick);
+    mWb = wb;
   }
+
+  private void mTimer_Tick(object sender, EventArgs e) {
+    mTimer.Stop();
+
+    try {
+      DoCapture();
+    } 
+    catch (Exception ex) {
+      Console.WriteLine(ex.Message);
+    }
+
+    mWb.Dispose();
+    Application.Exit();
+  }
+
+  public void DoCapture() {
+    IHTMLDocument2 doc2 = (IHTMLDocument2)mWb.Document;
+    IHTMLDocument3 doc3 = (IHTMLDocument3)mWb.Document;
+    IHTMLElement2 body2 = (IHTMLElement2)doc2.body;
+    IHTMLElement2 root2 = (IHTMLElement2)doc3.documentElement;
+
+    // Determine dimensions for the image; we could add minWidth here
+    // to ensure that we get closer to the minimal width (the width
+    // computed might be a few pixels less than what we want).
+    int width = Math.Max(body2.scrollWidth, root2.scrollWidth);
+    int height = Math.Max(root2.scrollHeight, body2.scrollHeight);
+
+    // Resize the web browser control
+    mWb.SetBounds(0, 0, width, height);
+
+    // Do it a second time; in some cases the initial values are
+    // off by quite a lot, for as yet unknown reasons. We could
+    // also do this in a loop until the values stop changing with
+    // some additional terminating condition like n attempts.
+    width = Math.Max(body2.scrollWidth, root2.scrollWidth);
+    height = Math.Max(root2.scrollHeight, body2.scrollHeight);
+    mWb.SetBounds(0, 0, width, height);
+
+    Bitmap image = new Bitmap(width, height);
+    Graphics g = Graphics.FromImage(image);
+
+    _RECTL bounds;
+    bounds.left = 0;
+    bounds.top = 0;
+    bounds.right = width;
+    bounds.bottom = height;
+
+    IntPtr hdc = g.GetHdc();
+    IViewObject iv = doc2 as IViewObject;
+
+    // TODO: Write to Metafile instead if requested.
+
+    iv.Draw(1, -1, (IntPtr)0, (IntPtr)0, (IntPtr)0,
+      (IntPtr)hdc, ref bounds, (IntPtr)0, (IntPtr)0, 0);
+
+    g.ReleaseHdc(hdc);
+    image.Save(mFile);
+    image.Dispose();
+  }
+
 }
 
 class IECapt {
 
   static void PrintUsage() {
-    Console.WriteLine("Usage: IECapt --url=http://... --out=file.png [--min-width=800]");
+    Console.WriteLine("Usage: IECapt --url=http://... --out=file.png");
+    Console.WriteLine();
+    Console.WriteLine("Options:");
+    Console.WriteLine("  --url         The URL to capture");
+    Console.WriteLine("  --out         The target file (.png|jpeg|bmp|emf|tiff)");
+    Console.WriteLine("  --min-width   Minimal width for the image (default: 800)");
+    Console.WriteLine("  --delay       Capturing delay in ms (default: 1)");
   }
 
   [STAThread]
@@ -829,6 +914,7 @@ class IECapt {
     string URL = null;
     string file = null;
     int minWidth = 800;
+    int delay = 1;
 
     if (args.Length == 0) {
       PrintUsage();
@@ -848,18 +934,20 @@ class IECapt {
         file = tmp[1];;
       } else if (tmp[0].Equals("--min-width")) {
         minWidth = int.Parse(tmp[1]);
-    } else {
+      } else if (tmp[0].Equals("--delay")) {
+        delay = int.Parse(tmp[1]);
+      } else {
         Console.WriteLine("Warning: unknown parameter {0}", tmp[0]);
       }
     }
 
-    if (URL == null || file == null) {
+    if (delay < 1 || URL == null || file == null) {
       PrintUsage();
       return;
     }
 
-    Form main = new IECaptForm(URL, file, minWidth);
     AxWebBrowser wb = new AxWebBrowser();
+    Form main = new IECaptForm(URL, file, minWidth, delay, wb);
 
     wb.BeginInit();
     wb.Parent = main;
@@ -906,72 +994,21 @@ class IECapt {
   private static void IE_DocumentComplete(object sender,
     DWebBrowserEvents2_DocumentCompleteEvent e) {
 
-    try {
+    AxWebBrowser wb = (AxWebBrowser)sender;
+    IECaptForm main = (IECaptForm)wb.Parent;
 
-      AxWebBrowser wb = (AxWebBrowser)sender;
-      IECaptForm main = (IECaptForm)wb.Parent;
+    // Skip document complete event for embedded frames.
+    if (wb.Application != e.pDisp)
+      return;
 
-      // Skip document complete event for embedded frames.
-      if (wb.Application != e.pDisp)
-        return;
+    // Skip the initial about:blank document; this is not necessarily
+    // the best thing to do, e.g. if the requested page is about:blank
+    // or redirects to it, we might never exit. This could be avoided
+    // by remembering whether we saw the first document complete event.
+    if (e.uRL.Equals("about:blank"))
+      return;
 
-      // Skip the initial about:blank document; this is not necessarily
-      // the best thing to do, e.g. if the requested page is about:blank
-      // or redirects to it, we might never exit. This could be avoided
-      // by remembering whether we saw the first document complete event.
-      if (e.uRL.Equals("about:blank"))
-        return;
-
-      IHTMLDocument2 doc2 = (IHTMLDocument2)wb.Document;
-      IHTMLDocument3 doc3 = (IHTMLDocument3)wb.Document;
-      IHTMLElement2 body2 = (IHTMLElement2)doc2.body;
-      IHTMLElement2 root2 = (IHTMLElement2)doc3.documentElement;
-
-      // Determine dimensions for the image; we could add minWidth here
-      // to ensure that we get closer to the minimal width (the width
-      // computed might be a few pixels less than what we want).
-      int width = Math.Max(body2.scrollWidth, root2.scrollWidth);
-      int height = Math.Max(root2.scrollHeight, body2.scrollHeight);
-
-      // Resize the web browser control
-      wb.SetBounds(0, 0, width, height);
-
-      // Do it a second time; in some cases the initial values are
-      // off by quite a lot, for as yet unknown reasons. We could
-      // also do this in a loop until the values stop changing with
-      // some additional terminating condition like n attempts.
-      width = Math.Max(body2.scrollWidth, root2.scrollWidth);
-      height = Math.Max(root2.scrollHeight, body2.scrollHeight);
-      wb.SetBounds(0, 0, width, height);
-
-      Bitmap image = new Bitmap(width, height);
-      Graphics g = Graphics.FromImage(image);
-
-      _RECTL bounds;
-      bounds.left = 0;
-      bounds.top = 0;
-      bounds.right = width;
-      bounds.bottom = height;
-
-      IntPtr hdc = g.GetHdc();
-      IViewObject iv = doc2 as IViewObject;
-
-      // TODO: Write to Metafile instead if requested.
-
-      iv.Draw(1, -1, (IntPtr)0, (IntPtr)0, (IntPtr)0,
-        (IntPtr)hdc, ref bounds, (IntPtr)0, (IntPtr)0, 0);
-
-      g.ReleaseHdc(hdc);
-      image.Save(main.mFile);
-      image.Dispose();
-
-      // We are done.
-      Application.Exit();
-
-    } catch (Exception ex) {
-      Console.WriteLine(ex.Message);
-      Application.Exit();
-    }
+    main.mTimer.Start();
   }
 
   private static void IE_NavigateError(object sender, DWebBrowserEvents2_NavigateErrorEvent e) {
@@ -987,6 +1024,7 @@ class IECapt {
     Console.Error.WriteLine("Failed to navigate to {0} (0x{1:X08})",
       e.uRL, e.statusCode);
 
+    wb.Dispose();
     Application.Exit();
   }
 }
