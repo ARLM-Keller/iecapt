@@ -89,6 +89,7 @@ public interface IDocHostUIHandler {
   [PreserveSig]
   uint ShowContextMenu([In] uint dwID, [In] ref tagPOINT ppt, [In, MarshalAs(UnmanagedType.IUnknown)] object pcmdtReserved, [In, MarshalAs(UnmanagedType.IDispatch)] object pdispReserved);
   void GetHostInfo([In, Out] ref _DOCHOSTUIINFO pInfo);
+  [PreserveSig]
   uint ShowUI([In] uint dwID, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceActiveObject pActiveObject, [In, MarshalAs(UnmanagedType.Interface)] IOleCommandTarget pCommandTarget, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceFrame pFrame, [In, MarshalAs(UnmanagedType.Interface)] IOleInPlaceUIWindow pDoc);
   void HideUI();
   void UpdateUI();
@@ -906,6 +907,8 @@ class IECapt {
     Console.WriteLine("  --url         The URL to capture");
     Console.WriteLine("  --out         The target file (.png|jpeg|bmp|emf|tiff)");
     Console.WriteLine("  --min-width   Minimal width for the image (default: 800)");
+ // Console.WriteLine("  --max-height   Maximal height to capture (default: 0)");
+ // Console.WriteLine("" --user-style   Path to user style sheet (.css) file");
     Console.WriteLine("  --delay       Capturing delay in ms (default: 1)");
   }
 
