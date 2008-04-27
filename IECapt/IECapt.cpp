@@ -89,8 +89,8 @@ public:
     BOOL SaveSnapshot(IDispatch* pdisp, VARIANT* purl);
 
 public:
-    LPCSTR m_URI;
-    LPCSTR m_fileName;
+    LPTSTR m_URI;
+    LPTSTR m_fileName;
 
 protected:
     CComPtr<IUnknown> m_pWebBrowserUnk;
@@ -217,23 +217,11 @@ LRESULT CMain::OnDestroy(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled
 //////////////////////////////////////////////////////////////////
 BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
 {
-        IHTMLDocument3* pDocument3 = NULL;
-        IHTMLDocument2* pDocument  = NULL;
-        IHTMLElement2* pElement2   = NULL;
-        IHTMLElement* pElement     = NULL;
-        IViewObject2* pViewObject  = NULL;
-        IDispatch* pDispatch       = NULL;
+        long bodyHeight, bodyWidth, rootHeight, rootWidth, height, width;
+        IDispatch* pDispatch = NULL;
         IDispatch* pWebBrowserDisp = NULL;
 
-        HRESULT hr;
-        long bodyHeight;
-        long bodyWidth;
-        long rootHeight;
-        long rootWidth;
-        long height;
-        long width;
-
-        hr = m_pWebBrowser->get_Document(&pDispatch);
+        HRESULT hr = m_pWebBrowser->get_Document(&pDispatch);
 
         if (FAILED(hr))
             return true;
@@ -249,52 +237,58 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
             return false;
         }
 
-        hr = pDispatch->QueryInterface(IID_IHTMLDocument2, (void**)&pDocument);
+        CComPtr<IHTMLDocument2> spDocument;
+        hr = pDispatch->QueryInterface(IID_IHTMLDocument2, (void**)&spDocument);
 
         if (FAILED(hr))
             return true;
 
-        hr = pDocument->get_body(&pElement);
+        CComPtr<IHTMLElement> spBody;
+        hr = spDocument->get_body(&spBody);
 
         if (FAILED(hr))
             return true;
 
-        hr = pElement->QueryInterface(IID_IHTMLElement2, (void**)&pElement2);
+        CComPtr<IHTMLElement2> spBody2;
+        hr = spBody->QueryInterface(IID_IHTMLElement2, (void**)&spBody2);
 
         if (FAILED(hr))
             return true;
 
-        hr = pElement2->get_scrollHeight(&bodyHeight);
+        hr = spBody2->get_scrollHeight(&bodyHeight);
 
         if (FAILED(hr))
             return true;
 
-        hr = pElement2->get_scrollWidth(&bodyWidth);
+        hr = spBody2->get_scrollWidth(&bodyWidth);
 
         if (FAILED(hr))
             return true;
 
-        hr = pDispatch->QueryInterface(IID_IHTMLDocument3, (void**)&pDocument3);
+        CComPtr<IHTMLDocument3> spDocument3;
+        hr = pDispatch->QueryInterface(IID_IHTMLDocument2, (void**)&spDocument3);
 
         if (FAILED(hr))
             return true;
 
-        hr = pDocument3->get_documentElement(&pElement);
+        CComPtr<IHTMLElement> spHtml;
+        hr = spDocument3->get_documentElement(&spHtml);
 
         if (FAILED(hr))
             return true;
 
-        hr = pElement->QueryInterface(IID_IHTMLElement2, (void**)&pElement2);
+        CComPtr<IHTMLElement2> spHtml2;
+        hr = spHtml->QueryInterface(IID_IHTMLElement2, (void**)&spHtml2);
 
         if (FAILED(hr))
             return true;
 
-        hr = pElement2->get_scrollHeight(&rootHeight);
+        hr = spHtml2->get_scrollHeight(&rootHeight);
 
         if (FAILED(hr))
             return true;
 
-        hr = pElement2->get_scrollWidth(&rootWidth);
+        hr = spHtml2->get_scrollWidth(&rootWidth);
 
         if (FAILED(hr))
             return true;
@@ -305,7 +299,8 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         MoveWindow(0, 0, width, height, TRUE);      
         ::MoveWindow(m_hwndWebBrowser, 0, 0, width, height, TRUE);
 
-        hr = m_pWebBrowser->QueryInterface(IID_IViewObject2, (void**)&pViewObject);
+        CComPtr<IViewObject2> spViewObject;
+        hr = m_pWebBrowser->QueryInterface(IID_IViewObject2, (void**)&spViewObject);
 
         if (FAILED(hr))
             return true;
@@ -352,8 +347,8 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         SelectObject(hdcMem, hBitmap);
 
         RECTL rcBounds = { 0, 0, width, height };
-        hr = pViewObject->Draw(DVASPECT_CONTENT, -1, NULL, NULL, hdcMain,
-                               hdcMem, &rcBounds, NULL, NULL, 0);
+        hr = spViewObject->Draw(DVASPECT_CONTENT, -1, NULL, NULL, hdcMain,
+                                hdcMem, &rcBounds, NULL, NULL, 0);
 
         if (SUCCEEDED(hr))
         {
@@ -367,7 +362,6 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         DeleteObject(hBitmap);
         DeleteDC(hdcMem);
 
-        pViewObject->Release();
         pWebBrowserDisp->Release();
 
         return true;
@@ -376,7 +370,7 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
 static const GUID myGUID = { 0x445c10c2, 0xa6d4, 0x40a9, { 0x9c, 0x3f, 0x4e, 0x90, 0x42, 0x1d, 0x7e, 0x83 } };
 static CComModule _Main;
 
-int main (int argc, char *argv[])
+int _tmain (int argc, _TCHAR* argv[])
 {
     if (argc != 3)
     {
