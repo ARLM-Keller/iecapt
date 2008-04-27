@@ -2,7 +2,7 @@
 //
 // IECapt - A Internet Explorer Web Page Rendering Capture Utility
 //
-// Copyright (C) 2003-2006 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+// Copyright (C) 2003-2008 Bjoern Hoehrmann <bjoern@hoehrmann.de>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -43,8 +43,6 @@ class CEventSink :
 public:
     CEventSink() : m_pMain(NULL) {}
 
-public:
-
     BEGIN_COM_MAP(CEventSink)
         COM_INTERFACE_ENTRY(IDispatch)
         COM_INTERFACE_ENTRY_IID(DIID_DWebBrowserEvents2, IDispatch)
@@ -68,9 +66,8 @@ class CMain :
 {
 public:
 
-    CMain() : m_dwCookie(0) { }
-
-public:
+    CMain(LPTSTR uri, LPTSTR file, BOOL silent) :
+      m_dwCookie(0), m_URI(uri), m_fileName(file), m_bSilent(silent) { }
 
     BEGIN_MSG_MAP(CMainWindow)
         MESSAGE_HANDLER(WM_CREATE,  OnCreate)
@@ -78,19 +75,16 @@ public:
         MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
     END_MSG_MAP()
 
-public:
-
     LRESULT OnCreate  (UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnSize    (UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnDestroy (UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
-public:
-
     BOOL SaveSnapshot(IDispatch* pdisp, VARIANT* purl);
 
-public:
+private:
     LPTSTR m_URI;
     LPTSTR m_fileName;
+    BOOL   m_bSilent;
 
 protected:
     CComPtr<IUnknown> m_pWebBrowserUnk;
@@ -172,6 +166,9 @@ LRESULT CMain::OnCreate(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
     if (FAILED(hr))
         return 1;
 
+    // Set whether it should be silent
+    m_pWebBrowser->put_Silent(m_bSilent ? VARIANT_TRUE : VARIANT_FALSE);
+
     hr = CComObject<CEventSink>::CreateInstance(&m_pEventSink);
 
     if (FAILED(hr))
@@ -218,8 +215,9 @@ LRESULT CMain::OnDestroy(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled
 BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
 {
         long bodyHeight, bodyWidth, rootHeight, rootWidth, height, width;
-        IDispatch* pDispatch = NULL;
-        IDispatch* pWebBrowserDisp = NULL;
+
+        CComPtr<IDispatch> pDispatch;
+        CComPtr<IDispatch> pWebBrowserDisp;
 
         HRESULT hr = m_pWebBrowser->get_Document(&pDispatch);
 
@@ -231,11 +229,12 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         if (FAILED(hr))
             return true;
 
+        // This is not the source we are looking for.
         if (pWebBrowserDisp != pdisp)
-        {
-            pWebBrowserDisp->Release();
             return false;
-        }
+
+        // TODO: if we fail past this point, we should not really try again
+        // but abort the whole process to avoid being locked and halting.
 
         CComPtr<IHTMLDocument2> spDocument;
         hr = pDispatch->QueryInterface(IID_IHTMLDocument2, (void**)&spDocument);
@@ -271,6 +270,9 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         if (FAILED(hr))
             return true;
 
+        // We also need to get the dimensions from the <html> due to quirks
+        // and standards mode differences. Perhaps this should instead check
+        // whether we are in quirks mode? How does it work with IE8?
         CComPtr<IHTMLElement> spHtml;
         hr = spDocument3->get_documentElement(&spHtml);
 
@@ -296,73 +298,33 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
         width = bodyWidth;
         height = rootHeight > bodyHeight ? rootHeight : bodyHeight;
 
-        MoveWindow(0, 0, width, height, TRUE);      
+        // TODO: What if width or height exceeds 32767? It seems Windows limits
+        // the window size, and Internet Explorer does not draw what's not visible.
         ::MoveWindow(m_hwndWebBrowser, 0, 0, width, height, TRUE);
 
         CComPtr<IViewObject2> spViewObject;
-        hr = m_pWebBrowser->QueryInterface(IID_IViewObject2, (void**)&spViewObject);
+
+        // This used to get the interface from the m_pWebBrowser but that seems
+        // to be an undocumented feature, so we get it from the Document instead.
+        hr = spDocument3->QueryInterface(IID_IViewObject2, (void**)&spViewObject);
 
         if (FAILED(hr))
             return true;
 
-        BITMAPINFOHEADER bih;
-        BITMAPINFO bi;
-        RGBQUAD rgbquad;
-
-        ZeroMemory(&bih, sizeof(BITMAPINFOHEADER));
-        ZeroMemory(&rgbquad, sizeof(RGBQUAD));
-
-        bih.biSize          = sizeof(BITMAPINFOHEADER);
-        bih.biWidth         = width;
-        bih.biHeight        = height;
-        bih.biPlanes        = 1;
-        bih.biBitCount      = 24;
-        bih.biClrUsed       = 0;
-        bih.biSizeImage     = 0;
-        bih.biCompression   = BI_RGB;
-        bih.biXPelsPerMeter = 0;
-        bih.biYPelsPerMeter = 0;
-
-        bi.bmiHeader = bih;
-        bi.bmiColors[0] = rgbquad;
-
-        HDC hdcMain = GetDC();
-
-        if (!hdcMain)
-            return true;
-
-        HDC hdcMem = CreateCompatibleDC(hdcMain);
-
-        if (!hdcMem)
-            return true;
-
-        char* bitmapData = NULL;
-        HBITMAP hBitmap = CreateDIBSection(hdcMain, &bi, DIB_RGB_COLORS, (void**)&bitmapData, NULL, 0);
-
-        if (!hBitmap) {
-            // TODO: cleanup
-            return true;
-        }
-
-        SelectObject(hdcMem, hBitmap);
-
         RECTL rcBounds = { 0, 0, width, height };
-        hr = spViewObject->Draw(DVASPECT_CONTENT, -1, NULL, NULL, hdcMain,
-                                hdcMem, &rcBounds, NULL, NULL, 0);
+
+        CImage image;
+
+        // TODO: check return value;
+        image.Create(width, height, 24);
+
+        HDC imgDc = image.GetDC();
+        hr = spViewObject->Draw(DVASPECT_CONTENT, -1, NULL, NULL, imgDc,
+                                imgDc, &rcBounds, NULL, NULL, 0);
+        image.ReleaseDC();
 
         if (SUCCEEDED(hr))
-        {
-            CImage image;
-            image.Create(width, height, 24);
-            CImageDC imageDC(image);
-            ::BitBlt(imageDC, 0, 0, width, height, hdcMem, 0, 0, SRCCOPY);
-            image.Save(m_fileName);
-        }
-
-        DeleteObject(hBitmap);
-        DeleteDC(hdcMem);
-
-        pWebBrowserDisp->Release();
+            hr = image.Save(m_fileName);
 
         return true;
 }
@@ -370,14 +332,84 @@ BOOL CMain::SaveSnapshot(IDispatch* pdisp, VARIANT* purl)
 static const GUID myGUID = { 0x445c10c2, 0xa6d4, 0x40a9, { 0x9c, 0x3f, 0x4e, 0x90, 0x42, 0x1d, 0x7e, 0x83 } };
 static CComModule _Main;
 
+void
+IECaptHelp(void) {
+    printf(" -----------------------------------------------------------------------------\n");
+    printf(" Usage: iecapt --url=http://www.example.org/ --out=localfile.png\n");
+    printf(" -----------------------------------------------------------------------------\n");
+    printf("   --url=...        The URL to capture\n");
+    printf("   --out=...        The target file (.png|jpeg|bmp|...)\n");
+    printf("   --min-width=...  Minimal width for the image (default: 800)\n");
+    printf("   --silent         Whether to surpress some dialogs\n");
+    printf(" -----------------------------------------------------------------------------\n");
+    printf(" http://iecapt.sf.net - (c) 2003-2008 Bjoern Hoehrmann - <bjoern@hoehrmann.de>\n");
+}
+
 int _tmain (int argc, _TCHAR* argv[])
 {
-    if (argc != 3)
-    {
-        printf("Usage: %s http://www.example.org/ localfile.png\n", argv[0]);
+    int ax;
+    int argHelp = 0;
+    int argSilent = 0;
+    _TCHAR* argUrl = NULL;
+    _TCHAR* argOut = NULL;
+    unsigned int argMinWidth = 800;
+
+    // Parse command line parameters
+    for (ax = 1; ax < argc; ++ax) {
+        size_t nlen;
+
+        _TCHAR* s = argv[ax];
+        _TCHAR* value;
+
+        // boolean options
+        if (_tcscmp(_T("--silent"), s) == 0) {
+          argSilent = 1;
+          continue;
+
+        } else if (_tcscmp(_T("--help"), s) == 0) {
+          argHelp = 1;
+          break;
+        } 
+
+        value = _tcschr(s, '=');
+
+        if (value == NULL) {
+            if (argUrl == NULL) {
+                argUrl = s;
+                continue;
+            } else if (argOut == NULL) {
+                argOut = s;
+                continue;
+            }
+            // error
+            argHelp = 1;
+            break;
+        }
+
+        nlen = value++ - s;
+
+        // --name=value options
+        if (_tcsncmp(_T("--url"), s, nlen) == 0) {
+          argUrl = value;
+
+        } else if (_tcsncmp(_T("--min-width"), s, nlen) == 0) {
+            // TODO: add error checking here?
+            argMinWidth = (unsigned int)_tstoi(value);
+
+        } else if (_tcsncmp(_T("--out"), s, nlen) == 0) {
+          argOut = value;
+
+        } else {
+          // TODO: error
+          argHelp = 1;
+        }
+    }
+
+    if (argUrl == NULL || argOut == NULL || argHelp) {
+        IECaptHelp();
         return EXIT_FAILURE;
     }
-    
+
     HRESULT hr = _Main.Init(NULL, ::GetModuleHandle(NULL), &myGUID);
 
     if (FAILED(hr))
@@ -386,16 +418,13 @@ int _tmain (int argc, _TCHAR* argv[])
     if (!AtlAxWinInit())
         return EXIT_FAILURE;
 
-    CMain MainWnd;
+    CMain MainWnd(argUrl, argOut, argSilent);
 
-    MainWnd.m_URI = argv[1];
-    MainWnd.m_fileName = argv[2];
-    RECT rcMain = { 0, 0, 800, 600 };
+    RECT rcMain = { 0, 0, argMinWidth, 600 };
     MainWnd.Create(NULL, rcMain, _T("IECapt"), WS_POPUP);
 
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0)) 
-    {
+    while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
