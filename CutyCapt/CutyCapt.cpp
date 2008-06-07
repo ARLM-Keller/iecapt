@@ -25,6 +25,8 @@
 #include <QSvgGenerator>
 #include <QPrinter>
 #include <QTimer>
+#include <QByteArray>
+#include <QNetworkRequest>
 #include "CutyCapt.hpp"
 
 Q_IMPORT_PLUGIN(qjpeg)
@@ -44,7 +46,7 @@ MainWindow::MainWindow() {
 }
 
 void
-MainWindow::setOutputFilePath(char* path) {
+MainWindow::setOutputFilePath(const char* path) {
   mOutput = path;
 }
 
@@ -120,7 +122,7 @@ void
 CaptHelp(void) {
   printf("%s", ""
     " -----------------------------------------------------------------------------\n"
-    " Usage: cutycapt --url=http://www.example.org/ --out=localfile.png            \n"
+    " Usage: CutyCapt --url=http://www.example.org/ --out=localfile.png            \n"
     " -----------------------------------------------------------------------------\n"
     "  --url=<url>                    The URL to capture (http:...|file:...|...)   \n"
     "  --out=<path>                   The target file (.png|pdf|ps|svg|jpeg|...)   \n"
@@ -128,6 +130,12 @@ CaptHelp(void) {
     "  --max-wait=<ms>                Don't wait more than (default: 90000, inf: 0)\n"
     "  --delay=<ms>                   After successful load, wait (default: 0)     \n"
     "  --user-styles=<url>            Location of user style sheet, if any         \n"
+    "  --header=<name>:<value>        request header; repeatable; some can't be set\n"
+    "  --method=<get|post|put>        Specifies the request method (default: get)  \n"
+    "  --body-string=<string>         Unencoded request body (default: none)       \n"
+    "  --body-base64=<string>         Base64-encoded request body (default: none)  \n"
+    "  --app-name=<name>              appName used in User-Agent; default is none  \n"
+    "  --app-version=<version>        appVers used in User-Agent; default is none  \n"
     "  --javascript=<on|off>          JavaScript execution (default: on)           \n"
     "  --java=<on|off>                Java execution (default: unknown)            \n"
     "  --plugins=<on|off>             Plugin execution (default: unknown)          \n"
@@ -141,7 +149,7 @@ CaptHelp(void) {
 }
 
 void
-CaptSetWebOption(QWebView* browser, QWebSettings::WebAttribute option, char* value) {
+CaptSetWebOption(QWebView* browser, QWebSettings::WebAttribute option, const char* value) {
   QWebSettings *settings = browser->settings();
   
   if (strcmp(value, "on") == 0)
@@ -161,10 +169,11 @@ main(int argc, char *argv[]) {
   int argDefHeight = 600;
   int argMaxWait = 90000;
 
-  char* argUrl = NULL;
-  char* argOut = NULL;
-  char* argUserStyle = NULL;
-  char* argIconDbPath = NULL;
+  const char* argUrl = NULL;
+  const char* argOut = NULL;
+  const char* argUserStyle = NULL;
+  const char* argIconDbPath = NULL;
+  const char* argBodyBase64 = NULL;
 
   QApplication app(argc, argv, true);
 
@@ -176,13 +185,17 @@ main(int argc, char *argv[]) {
     SLOT(DocumentComplete()));
 
   QWebView *browser = qobject_cast<QWebView *>(main->centralWidget());
+  QNetworkAccessManager::Operation method =
+    QNetworkAccessManager::GetOperation;
+  QByteArray body;
+  QNetworkRequest req;
 
   // Parse command line parameters
   for (int ax = 1; ax < argc; ++ax) {
     size_t nlen;
 
-    char* s = argv[ax];
-    char* value;
+    const char* s = argv[ax];
+    const char* value;
 
     // boolean options
     if (strcmp("--silent", s) == 0) {
@@ -256,6 +269,41 @@ main(int argc, char *argv[]) {
     } else if (strncmp("--links-included-in-focus-chain", s, nlen) == 0) {
       CaptSetWebOption(browser, QWebSettings::LinksIncludedInFocusChain, value);
 
+    } else if (strncmp("--app-name", s, nlen) == 0) {
+      app.setApplicationName(value);
+
+    } else if (strncmp("--app-version", s, nlen) == 0) {
+      app.setApplicationVersion(value);
+
+    } else if (strncmp("--body-base64", s, nlen) == 0) {
+      body = QByteArray::fromBase64(value);
+
+    } else if (strncmp("--body-string", s, nlen) == 0) {
+      body = QByteArray(value);
+
+    } else if (strncmp("--header", s, nlen) == 0) {
+      const char* hv = strchr(value, ':');
+
+      if (hv == NULL) {
+        // TODO: error
+        argHelp = 1;
+        break;
+      }
+
+      req.setRawHeader(QByteArray(value, hv - value), hv + 1);
+
+    } else if (strncmp("--method", s, nlen) == 0) {
+      if (strcmp("value", "get") == 0)
+        method = QNetworkAccessManager::GetOperation;
+      else if (strcmp("value", "put") == 0)
+        method = QNetworkAccessManager::PutOperation;
+      else if (strcmp("value", "post") == 0)
+        method = QNetworkAccessManager::PostOperation;
+      else if (strcmp("value", "head") == 0)
+        method = QNetworkAccessManager::HeadOperation;
+      else 
+        (void)0; // TODO: ...
+
     } else {
       // TODO: error
       argHelp = 1;
@@ -267,6 +315,7 @@ main(int argc, char *argv[]) {
       return EXIT_FAILURE;
   }
 
+  req.setUrl( QUrl(argUrl) );
   main->setOutputFilePath(argOut);
 
   if (argMaxWait > 0) {
@@ -282,7 +331,11 @@ main(int argc, char *argv[]) {
     browser->settings()->setIconDatabasePath(argUserStyle);
 
   browser->resize(argMinWidth, argDefHeight);
-  browser->load( QUrl(argUrl) );
+
+  if (!body.isNull())
+    browser->load(req, method, body);
+  else
+    browser->load(req, method);
 
   return app.exec();
 }

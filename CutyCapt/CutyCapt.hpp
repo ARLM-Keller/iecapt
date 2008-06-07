@@ -6,7 +6,7 @@ class MainWindow : public QMainWindow {
 
 public:
   MainWindow();
-  void setOutputFilePath(char* path);
+  void setOutputFilePath(const char* path);
   void setRenderingDelay(int ms);
 
 private slots:
@@ -18,8 +18,13 @@ private:
   void saveSnapshot();
 
 protected:
-  char* mOutput;
+  const char* mOutput;
   int mDelay;
 
 };
 
+class CutyPage : public QWebPage {
+  Q_OBJECT
+
+  
+};

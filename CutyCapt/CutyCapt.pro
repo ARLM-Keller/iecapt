@@ -1,4 +1,4 @@
-QT       +=  webkit svg
+QT       +=  webkit svg network
 SOURCES   =  CutyCapt.cpp
 HEADERS   =  CutyCapt.hpp
 CONFIG   +=  qt console static
