@@ -173,6 +173,8 @@ LRESULT CMain::OnCreate(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
       /*WS_POPUP|*/WS_CHILD|WS_DISABLED, old.top, old.left, old.right,
       old.bottom, m_hWnd, NULL, ::GetModuleHandle(NULL), NULL);
 
+  // TODO: Quit if m_hwndWebBrowser is null.
+
   hr = AtlAxGetControl(m_hwndWebBrowser, &m_pWebBrowserUnk);
 
   if (FAILED(hr))
@@ -379,6 +381,13 @@ BOOL CMain::SaveSnapshot(void)
 
     Gdiplus::Graphics g(&emf);
     HDC imgDc = g.GetHDC();
+
+    // For unknown reasons Internet Explorer will sometimes
+    // fail to draw glyphs for certain characters here even
+    // though they are rendered in Internet Explorer itself.
+    // On other pages, Internet Explorer will simply render
+    // a single bitmap into the emf which isn't really what
+    // this should do. I've no idea how to fix that however.
 
     hr = spViewObject->Draw(DVASPECT_CONTENT, -1, NULL, NULL, imgDc,
                             imgDc, &rcBounds, NULL, NULL, 0);
