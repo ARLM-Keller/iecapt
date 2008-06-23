@@ -1,0 +1,15 @@
+[ uuid(91031b6e-d9de-42b0-80f2-945670c20de9) ]
+library IECaptComImports {
+    import "MsHtmHst.idl";
+    import "ExDisp.idl";
+    import "MsHTML.Idl";
+
+    struct _RECTL;
+    enum tagREADYSTATE;
+    enum tagDOCHOSTUIFLAG;
+    interface ICustomDoc;
+    interface IDocHostUIHandler;
+    interface IHTMLDocument2;
+    interface IHTMLDocument3;
+    interface IHTMLElement2;
+};
