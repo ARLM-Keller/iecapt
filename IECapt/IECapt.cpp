@@ -309,7 +309,7 @@ BOOL CMain::SaveSnapshot(void)
     return true;
 
   CComPtr<IHTMLDocument3> spDocument3;
-  hr = pDispatch->QueryInterface(IID_IHTMLDocument2, (void**)&spDocument3);
+  hr = pDispatch->QueryInterface(IID_IHTMLDocument3, (void**)&spDocument3);
 
   if (FAILED(hr))
     return true;
