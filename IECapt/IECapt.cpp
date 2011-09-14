@@ -289,7 +289,14 @@ BOOL CMain::SaveSnapshot(void)
   CComPtr<IHTMLElement> spBody;
   hr = spDocument->get_body(&spBody);
 
-  if (FAILED(hr))
+  // Apparently with MSHTML failing to get the body is not a failure,
+  // so if there is no HTML body to get, which may be the case with
+  // SVG images loaded directly, this succeeds but sets spBody to the
+  // NULL pointer, leading to a crash. I am not sure how to obtain
+  // the sizing information for SVG documents so this errors out here.
+  // A work around would be the make HTML host documents or wrapping
+  // the SVG code in a XHTML document, but that may break scripts.
+  if (FAILED(hr) || spBody == NULL)
     return true;
 
   CComPtr<IHTMLElement2> spBody2;
@@ -432,7 +439,20 @@ IECaptHelp(void) {
     "  --delay=<ms>                Wait after loading (e.g. for Flash; default: 0) \n"
     "  --silent                    Whether to surpress some dialogs                \n"
     " -----------------------------------------------------------------------------\n"
-    " http://iecapt.sf.net - (c) 2003-2008 Bjoern Hoehrmann - <bjoern@hoehrmann.de>\n"
+    " IECapt hosts the Internet Explorer engine. Hosts default to rendering in IE7 \n"
+    " mode. The Windows system registry has to be modified to change this. Example:\n"
+    "                                                                              \n"
+    "   % REG.EXE ADD \"HKCU\\SOFTWARE\\Microsoft\\Internet Explorer\\Main\\       \n"
+    "       FeatureControl\\FEATURE_BROWSER_EMULATION\" /v iecapt.exe /f           \n"
+    "       /t REG_DWORD /d 9000                                                   \n"
+    "                                                                              \n"
+    " 'Internet Feature Controls' http://msdn.microsoft.com/en-us/library/ee330730 \n"
+    " explains the available options. The value 9000 roughly matches what IE9 does.\n"
+    " -----------------------------------------------------------------------------\n"
+    " When running IECapt from the command prompt, be sure to quote URLs that make \n"
+    " use of characters like '&'. Example: `IECapt --url=\"http://example.org?x&y\"`.\n"
+    " -----------------------------------------------------------------------------\n"
+    " http://iecapt.sf.net - (c) 2003-2011 Bjoern Hoehrmann - <bjoern@hoehrmann.de>\n"
     "");
 }
 
