@@ -275,6 +275,10 @@ BOOL CMain::SaveSnapshot(void)
 
   CComPtr<IDispatch> pDispatch;
 
+  // TODO: "If the document object type is not safe for scripting,
+  // this method returns successfully but sets ppDisp to NULL. For
+  // Internet Explorer 7 and later, the return code is S_FALSE..."
+
   HRESULT hr = m_pWebBrowser->get_Document(&pDispatch);
 
   if (FAILED(hr))
@@ -442,9 +446,8 @@ IECaptHelp(void) {
     " IECapt hosts the Internet Explorer engine. Hosts default to rendering in IE7 \n"
     " mode. The Windows system registry has to be modified to change this. Example:\n"
     "                                                                              \n"
-    "   % REG.EXE ADD \"HKCU\\SOFTWARE\\Microsoft\\Internet Explorer\\Main\\       \n"
-    "       FeatureControl\\FEATURE_BROWSER_EMULATION\" /v iecapt.exe /f           \n"
-    "       /t REG_DWORD /d 9000                                                   \n"
+    "   % REG ADD \"HKCU\\SOFTWARE\\Microsoft\\Internet Explorer\\Main\\FeatureControl\\\n"
+    "       FEATURE_BROWSER_EMULATION\" /v iecapt.exe /f /t REG_DWORD /d 9000      \n"
     "                                                                              \n"
     " 'Internet Feature Controls' http://msdn.microsoft.com/en-us/library/ee330730 \n"
     " explains the available options. The value 9000 roughly matches what IE9 does.\n"
